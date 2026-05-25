@@ -1,0 +1,11 @@
+anthropic
+beautifulsoup4
+fastapi
+httpx
+pymupdf
+python-docx
+python-dotenv
+python-multipart
+sentence-transformers
+supabase
+uvicorn[standard]

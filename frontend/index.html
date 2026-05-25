@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MatchCV : find your perfect job match</title>
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --surface: #ffffff;
+      --border: #e3e5e8;
+      --border-strong: #c9ccd2;
+      --text: #1a1d21;
+      --text-muted: #5b6470;
+      --text-faint: #8a93a0;
+      --accent: #1f2937;
+      --accent-hover: #111827;
+      --pill: #eef0f3;
+      --pill-strong: #e2e6ec;
+      --highlight-bg: #f1f4f8;
+      --highlight-border: #cdd5de;
+      --danger: #b9573a;
+      --success-bg: #e8f0ea;
+      --success-text: #2d4a35;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    header h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+    header h1 .muted { color: var(--text-muted); font-weight: 400; }
+    .header-left, .header-right { display: flex; align-items: center; gap: 8px; }
+
+    .btn {
+      font: inherit;
+      padding: 7px 13px;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn:hover:not(:disabled) { background: var(--pill); }
+    .btn:disabled { color: var(--text-faint); cursor: not-allowed; }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+    .btn-danger {
+      color: var(--danger);
+      border-color: #f0d4cb;
+      background: #fdf4f1;
+    }
+    .btn-danger:hover:not(:disabled) { background: #f8e9e2; }
+
+    .counter {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      padding: 6px 10px;
+      background: var(--pill);
+      border-radius: 999px;
+    }
+    .counter.full { background: #fde7d8; color: var(--danger); }
+
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+
+    /* State 1 — upload prompt (full-screen centered) */
+    .upload-screen {
+      min-height: calc(100vh - 200px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .upload-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px 32px;
+      text-align: center;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: var(--shadow);
+    }
+    .upload-card h2 {
+      margin: 0 0 8px;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .upload-card p {
+      margin: 0 0 20px;
+      color: var(--text-muted);
+    }
+    .upload-card input[type="file"] {
+      display: none;
+    }
+    .upload-status {
+      margin-top: 16px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .upload-status.error { color: var(--danger); }
+
+    .signal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .signal-card h3 {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .signal-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .signal-item .label {
+      display: block;
+      font-size: 0.74rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .signal-pills {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+
+    /* Carousel */
+    .carousel { position: relative; }
+    .carousel-viewport { overflow: hidden; border-radius: 12px; }
+    .carousel-track {
+      display: flex;
+      transition: transform 0.28s ease;
+      will-change: transform;
+    }
+    .carousel-slide { flex: 0 0 100%; min-width: 0; padding: 4px; }
+
+    .nav-buttons {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+      gap: 12px;
+    }
+    .nav-buttons .nav-arrow {
+      width: 40px; height: 40px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; padding: 0;
+    }
+    .nav-position { font-size: 0.82rem; color: var(--text-muted); }
+
+    /* Job card */
+    .job-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 24px 20px;
+      box-shadow: var(--shadow);
+    }
+    .job-card .title-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .job-card .title { margin: 0; font-size: 1.3rem; font-weight: 600; letter-spacing: -0.005em; }
+    .job-card .title a { color: var(--text); text-decoration: none; }
+    .job-card .title a:hover { text-decoration: underline; }
+    .job-card .company { margin: 4px 0 12px; color: var(--text-muted); font-size: 0.95rem; }
+    .salary { font-weight: 500; font-size: 0.95rem; }
+    .salary.faint { color: var(--text-faint); font-weight: 400; }
+
+    .meta-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 14px; }
+    .pill {
+      background: var(--pill);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 0.8rem;
+      color: var(--text);
+    }
+    .pill.pill-strong { background: var(--pill-strong); font-weight: 500; }
+    .pill.pill-warn   { background: #f5e9e3; color: var(--danger); }
+
+    .fit-reason {
+      margin: 6px 0 16px;
+      padding: 12px 14px;
+      background: var(--highlight-bg);
+      border: 1px solid var(--highlight-border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      font-size: 0.92rem;
+    }
+    .fit-reason .label {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .description { font-size: 0.92rem; color: var(--text); white-space: pre-wrap; word-wrap: break-word; }
+    .description.collapsed {
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .toggle-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      margin-top: 6px;
+      color: var(--accent);
+      font-weight: 500;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .toggle-btn:hover { text-decoration: underline; }
+
+    .expanded {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: grid;
+      gap: 14px;
+    }
+    .section-heading {
+      font-size: 0.74rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin: 0 0 6px;
+      font-weight: 600;
+    }
+    .bullet-list { margin: 0; padding-left: 18px; font-size: 0.9rem; }
+    .bullet-list li { margin-bottom: 4px; }
+    .verification {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background: var(--pill);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+    .verification strong { color: var(--text); }
+
+    .actions {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .actions .btn { padding: 10px 12px; font-weight: 500; }
+
+    .end-card, .info-card {
+      background: var(--surface);
+      border: 1px dashed var(--border-strong);
+      border-radius: 12px;
+      padding: 32px 22px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .end-card h2, .info-card h2 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .end-card .find-more-btn { margin-top: 16px; }
+
+    /* Centered empty / loading / no-matches block */
+    .center-block {
+      min-height: calc(100vh - 220px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .center-block .info-card { max-width: 460px; }
+
+    /* Action button cluster on stateless info cards (e.g. "no matches"). */
+    .info-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 40;
+    }
+    .toast.visible { opacity: 1; }
+
+    @media (max-width: 600px) {
+      main { padding: 14px 10px 30px; }
+      .job-card { padding: 18px 16px; }
+      .actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <button type="button" class="btn" id="header-reupload-btn">Re-upload resume</button>
+      <input type="file" id="reupload-file-input" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
+    </div>
+    <h1>MatchCV <span class="muted"></span></h1>
+    <div class="header-right">
+      <span class="counter" id="counter" hidden></span>
+      <a class="btn" href="/profile.html">Profile</a>
+      <button type="button" class="btn" id="signout-btn">Sign out</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="info-card" id="loading-card">
+      <h2>Loading…</h2>
+      <p>Checking your account.</p>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="/auth.js"></script>
+  <script>
+    "use strict";
+
+    // localStorage key tracks shown_order (not array index) so the position
+    // is stable even if cards are appended at the end via Find more.
+    const LAST_ORDER_KEY = "careerguardian:lastShownOrder";
+
+    // Rolling-discovery polling. The streaming consumer surfaces jobs one
+    // at a time as the scraper produces them, so we keep polling well after
+    // the first card appears. Hard cap is generous because a full pass
+    // through 30+ candidates with an LLM fit check per survivor can take a
+    // couple of minutes.
+    const POLL_INTERVAL_MS = 3000;
+    const POLL_MAX_MS = 240000;
+    // Once discovery_in_progress flips to false, give the queue a few more
+    // ticks for the last LLM round-trip to land before declaring done.
+    const POLL_STAGNATION_TICKS = 4;
+
+    const $main = document.getElementById("main");
+    const $counter = document.getElementById("counter");
+    const $signout = document.getElementById("signout-btn");
+    const $headerReupload = document.getElementById("header-reupload-btn");
+    const $reuploadInput = document.getElementById("reupload-file-input");
+    const $toast = document.getElementById("toast");
+
+    const state = {
+      jobs: [],
+      shownCount: 0,
+      capReached: false,
+      availableSlots: 20,
+      currentIndex: 0,
+      busy: false,
+      pollHandle: null,
+    };
+
+    // -----------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------
+
+    function escapeHtml(value) {
+      if (value == null) return "";
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function showToast(message) {
+      $toast.textContent = message;
+      $toast.classList.add("visible");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => $toast.classList.remove("visible"), 2200);
+    }
+
+    function updateCounter() {
+      $counter.hidden = false;
+      $counter.textContent = `${state.shownCount} / 20 in queue`;
+      if (state.capReached) $counter.classList.add("full");
+      else $counter.classList.remove("full");
+    }
+
+    function hideCounter() {
+      $counter.hidden = true;
+      $counter.classList.remove("full");
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    // -----------------------------------------------------------------
+    // Generic API helpers
+    // -----------------------------------------------------------------
+
+    // apiGet / apiPost / apiPostMultipart are provided globally by auth.js.
+
+    // -----------------------------------------------------------------
+    // Job-card rendering
+    // -----------------------------------------------------------------
+
+    function formatSalary(job) {
+      const currency = job.salary_currency ? ` ${job.salary_currency}` : "";
+      const period = job.compensation_type ? ` ${job.compensation_type}` : "";
+      if (job.salary_range) {
+        return `${job.salary_range.min} – ${job.salary_range.max}${currency}${period}`;
+      }
+      if (job.salary) {
+        return `${job.salary}${currency}${period}`;
+      }
+      return null;
+    }
+
+    function renderPills(job) {
+      const pills = [];
+      if (job.remote_label === "Remote") pills.push(`<span class="pill pill-strong">Remote</span>`);
+      else if (job.remote_label === "On-site") pills.push(`<span class="pill">On-site</span>`);
+      if (job.seniority_level) pills.push(`<span class="pill">${escapeHtml(job.seniority_level)}</span>`);
+      if (job.remote_region) pills.push(`<span class="pill">${escapeHtml(job.remote_region)}</span>`);
+      if (job.timezone_requirements) pills.push(`<span class="pill">TZ: ${escapeHtml(job.timezone_requirements)}</span>`);
+      if (job.company_hq_country) pills.push(`<span class="pill">HQ: ${escapeHtml(job.company_hq_country)}</span>`);
+      if (job.equity_offered) pills.push(`<span class="pill pill-strong">Equity</span>`);
+      if (job.work_authorization) pills.push(`<span class="pill pill-warn">Auth: ${escapeHtml(job.work_authorization)}</span>`);
+      return pills.join("");
+    }
+
+    function renderBullets(label, items) {
+      if (!items || items.length === 0) return "";
+      const li = items.map((x) => `<li>${escapeHtml(x)}</li>`).join("");
+      return `<div><p class="section-heading">${label}</p><ul class="bullet-list">${li}</ul></div>`;
+    }
+
+    function renderVerification(verification) {
+      if (!verification || typeof verification !== "object") return "";
+      const verified = verification.verified;
+      const reason = verification.reason || "";
+      const matched = verification.matched_domain || "";
+      const claimed = verification.claimed_domain || "";
+      const headline = verified ? "Verified company" : "Company not verified";
+      const detail = [
+        matched ? `matched <strong>${escapeHtml(matched)}</strong>` : "",
+        claimed ? `claimed <strong>${escapeHtml(claimed)}</strong>` : "",
+        reason ? `(${escapeHtml(reason)})` : "",
+      ].filter(Boolean).join(" · ");
+      return `<div class="verification"><strong>${headline}</strong>${detail ? " — " + detail : ""}</div>`;
+    }
+
+    function renderJobCardHTML(card) {
+      const job = card.job || {};
+      const salary = formatSalary(job);
+      const applyHref = job.apply_url || job.posting_url || "#";
+
+      const titleHtml = job.job_title
+        ? `<a href="${escapeHtml(applyHref)}" target="_blank" rel="noopener noreferrer">${escapeHtml(job.job_title)}</a>`
+        : "Untitled role";
+
+      const fitReason = card.fit_reason ? `
+        <div class="fit-reason">
+          <span class="label">Why this fits</span>
+          ${escapeHtml(card.fit_reason)}
+        </div>` : "";
+
+      const expandedSections = [
+        renderBullets("Responsibilities", job.responsibilities),
+        renderBullets("Required qualifications", job.required_qualifications),
+        renderBullets("Preferred qualifications", job.preferred_qualifications),
+        renderBullets("Benefits", job.benefits),
+      ].join("");
+
+      const contactHtml = job.contact_email
+        ? `<div><span class="section-heading">Contact</span><div>${escapeHtml(job.contact_email)}</div></div>`
+        : "";
+      const summaryHtml = job.quality_summary
+        ? `<div><span class="section-heading">Quality summary</span><div>${escapeHtml(job.quality_summary)}</div></div>`
+        : "";
+      const verificationHtml = renderVerification(job.legitimacy_company_verification);
+
+      const description = job.job_description ? escapeHtml(job.job_description) : "";
+
+      return `
+        <article class="job-card" data-interaction="${escapeHtml(card.interaction_id || "")}">
+          <div class="title-row">
+            <div>
+              <h2 class="title">${titleHtml}</h2>
+              <div class="company">${escapeHtml(job.company_name || "Unknown company")}</div>
+            </div>
+            <div class="${salary ? "salary" : "salary faint"}">${salary ? escapeHtml(salary) : "Salary not disclosed"}</div>
+          </div>
+          <div class="meta-row">${renderPills(job)}</div>
+          ${fitReason}
+          ${description
+            ? `<div class="description collapsed">${description}</div>
+               <button type="button" class="toggle-btn" data-action="toggle">Show more</button>`
+            : ""}
+          <div class="expanded" hidden>
+            ${expandedSections || ""}
+            ${contactHtml}
+            ${verificationHtml}
+            ${summaryHtml}
+          </div>
+          <div class="actions">
+            <a class="btn btn-primary" href="${escapeHtml(applyHref)}" target="_blank" rel="noopener noreferrer" data-action="apply">Apply</a>
+            <button type="button" class="btn btn-danger" data-action="not-interested">Not interested</button>
+            <button type="button" class="btn" data-action="save">Save</button>
+          </div>
+        </article>`;
+    }
+
+    // -----------------------------------------------------------------
+    // Carousel
+    // -----------------------------------------------------------------
+
+    function renderEndCard() {
+      if (state.capReached) {
+        return `
+          <div class="end-card">
+            <h2>Queue is full</h2>
+            <p>You have 20 jobs in your queue. Apply to or dismiss some before fetching more.</p>
+          </div>`;
+      }
+      return `
+        <div class="end-card">
+          <h2>You've reached the end</h2>
+          <p>Fetch fresh jobs that match your resume.</p>
+          <button type="button" class="btn btn-primary find-more-btn" id="find-more-btn">
+            Find more jobs
+          </button>
+        </div>`;
+    }
+
+    function renderCapState() {
+      $main.innerHTML = `
+        <div class="info-card">
+          <h2>Your queue is full (20 / 20)</h2>
+          <p>To keep things focused, fetching more jobs is paused until you act on your existing queue.</p>
+          <p style="margin-top: 12px;">Apply to roles that fit, or mark ones that don't as not interested.</p>
+        </div>`;
+    }
+
+    function renderNoMatches() {
+      // State 3 (discovery returned empty) or initial empty queue.
+      // Two affordances: kick off a fresh streaming scrape, or replace
+      // the resume so the signal profile gets rebuilt.
+      $main.innerHTML = `
+        <div class="center-block">
+          <div class="info-card">
+            <h2>No matching jobs found right now</h2>
+            <p>Start a fresh search, or re-upload your resume to refresh your signals.</p>
+            <div class="info-actions">
+              <button type="button" class="btn btn-primary" id="no-matches-find-btn">Find jobs</button>
+              <button type="button" class="btn" id="no-matches-reupload-btn">Re-upload resume</button>
+            </div>
+          </div>
+        </div>`;
+      hideCounter();
+
+      const findBtn = document.getElementById("no-matches-find-btn");
+      const reBtn = document.getElementById("no-matches-reupload-btn");
+      if (findBtn) findBtn.addEventListener("click", () => findMore());
+      if (reBtn) reBtn.addEventListener("click", () => $reuploadInput.click());
+    }
+
+    function renderDiscoveryRunning(message) {
+      $main.innerHTML = `
+        <div class="center-block">
+          <div class="info-card">
+            <h2>Finding jobs for you…</h2>
+            <p>${escapeHtml(message || "This may take a moment.")}</p>
+          </div>
+        </div>`;
+    }
+
+    function renderCarousel() {
+      if (state.capReached) {
+        renderCapState();
+        return;
+      }
+      if (state.jobs.length === 0) {
+        renderNoMatches();
+        return;
+      }
+
+      const slides = state.jobs
+        .map((card) => `<div class="carousel-slide">${renderJobCardHTML(card)}</div>`)
+        .join("");
+      const endSlide = `<div class="carousel-slide">${renderEndCard()}</div>`;
+
+      $main.innerHTML = `
+        <div class="carousel" tabindex="0" id="carousel" aria-roledescription="carousel">
+          <div class="carousel-viewport">
+            <div class="carousel-track" id="carousel-track">${slides}${endSlide}</div>
+          </div>
+          <div class="nav-buttons">
+            <button type="button" class="btn nav-arrow" id="prev-btn" aria-label="Previous">←</button>
+            <span class="nav-position" id="nav-position"></span>
+            <button type="button" class="btn nav-arrow" id="next-btn" aria-label="Next">→</button>
+          </div>
+        </div>`;
+
+      document.getElementById("prev-btn").addEventListener("click", () => seek(-1));
+      document.getElementById("next-btn").addEventListener("click", () => seek(1));
+
+      const track = document.getElementById("carousel-track");
+      track.addEventListener("click", onCardClick);
+
+      document.getElementById("carousel").addEventListener("keydown", onKeyNav);
+      attachSwipe(document.getElementById("carousel"));
+
+      const findBtn = document.getElementById("find-more-btn");
+      if (findBtn) findBtn.addEventListener("click", findMore);
+
+      applyTransform();
+    }
+
+    function totalSlideCount() { return state.jobs.length + 1; }
+
+    function applyTransform() {
+      const track = document.getElementById("carousel-track");
+      if (!track) return;
+      const total = totalSlideCount();
+      if (state.currentIndex < 0) state.currentIndex = 0;
+      if (state.currentIndex > total - 1) state.currentIndex = total - 1;
+      track.style.transform = `translateX(-${state.currentIndex * 100}%)`;
+
+      const isEndSlide = state.currentIndex >= state.jobs.length;
+      document.getElementById("prev-btn").disabled = state.currentIndex === 0;
+      document.getElementById("next-btn").disabled = state.currentIndex >= total - 1;
+
+      const positionEl = document.getElementById("nav-position");
+      if (positionEl) {
+        positionEl.textContent = isEndSlide
+          ? state.jobs.length === 0 ? "" : `End of queue`
+          : `${state.currentIndex + 1} of ${state.jobs.length}`;
+      }
+
+      const card = state.jobs[state.currentIndex];
+      const value = card ? card.shown_order : -1;
+      try { localStorage.setItem(LAST_ORDER_KEY, String(value)); } catch {}
+    }
+
+    function seek(delta) {
+      state.currentIndex = Math.max(0, Math.min(totalSlideCount() - 1, state.currentIndex + delta));
+      applyTransform();
+    }
+
+    function onKeyNav(event) {
+      if (event.key === "ArrowLeft") { seek(-1); event.preventDefault(); }
+      else if (event.key === "ArrowRight") { seek(1); event.preventDefault(); }
+    }
+
+    function attachSwipe(el) {
+      let startX = null;
+      el.addEventListener("touchstart", (e) => { startX = e.touches[0].clientX; }, { passive: true });
+      el.addEventListener("touchend", (e) => {
+        if (startX == null) return;
+        const dx = e.changedTouches[0].clientX - startX;
+        startX = null;
+        if (Math.abs(dx) < 40) return;
+        seek(dx < 0 ? 1 : -1);
+      });
+    }
+
+    function onCardClick(event) {
+      const target = event.target.closest("[data-action]");
+      if (!target) return;
+      const action = target.dataset.action;
+      const card = target.closest(".job-card");
+      const interactionId = card && card.dataset.interaction;
+
+      if (action === "toggle") {
+        const desc = card.querySelector(".description");
+        const expanded = card.querySelector(".expanded");
+        if (desc.classList.contains("collapsed")) {
+          desc.classList.remove("collapsed");
+          expanded.hidden = false;
+          target.textContent = "Show less";
+        } else {
+          desc.classList.add("collapsed");
+          expanded.hidden = true;
+          target.textContent = "Show more";
+        }
+        return;
+      }
+
+      if (action === "apply") { markInteraction(interactionId, "applied"); return; }
+      if (action === "not-interested") {
+        event.preventDefault();
+        markInteraction(interactionId, "not_interested");
+        return;
+      }
+      if (action === "save") {
+        event.preventDefault();
+        markInteraction(interactionId, "saved");
+        return;
+      }
+    }
+
+    function applyQueuePayload(data) {
+      state.jobs = data.jobs || [];
+      state.shownCount = data.shown_count || 0;
+      state.capReached = !!data.cap_reached;
+      state.availableSlots = data.available_slots ?? 0;
+    }
+
+    function restorePosition() {
+      let savedOrder = -1;
+      try { savedOrder = parseInt(localStorage.getItem(LAST_ORDER_KEY) || "-1", 10); } catch {}
+      if (Number.isNaN(savedOrder) || savedOrder < 0) {
+        state.currentIndex = 0;
+        return;
+      }
+      const idx = state.jobs.findIndex((c) => c.shown_order === savedOrder);
+      state.currentIndex = idx >= 0 ? idx : 0;
+    }
+
+    // -----------------------------------------------------------------
+    // Three-state init (Fix 2)
+    // -----------------------------------------------------------------
+
+    async function init() {
+      const me = await requireAuth();
+      if (!me) return;
+
+      // State 1 — no resume on file. Show only the upload prompt.
+      if (!me.has_signal_profile) {
+        renderUploadState();
+        return;
+      }
+
+      // State 2 / State 3 — load the queue. /api/jobs/queue returns
+      // existing 'shown' rows when they exist, else runs initial discovery.
+      await loadQueue({ initial: true });
+    }
+
+    async function loadQueue({ initial = false } = {}) {
+      try {
+        const data = await apiGet("/api/jobs/queue");
+        applyQueuePayload(data);
+        updateCounter();
+
+        if (state.jobs.length > 0) {
+          // State 2 (existing) or State 3 (discovery just inserted rows).
+          restorePosition();
+          renderCarousel();
+          return;
+        }
+
+        if (state.capReached) {
+          renderCarousel();
+          return;
+        }
+
+        // No jobs returned yet.
+        if (initial) {
+          // If scraping is already in flight (kicked off by a concurrent upload
+          // or a prior find-more), just start polling. If nothing is running
+          // (State 3: resume exists, no shown jobs, idle), auto-trigger it.
+          let inProgress = data.discovery_in_progress;
+
+          if (!inProgress) {
+            // State 3 — auto-trigger discovery on first page load.
+            renderDiscoveryRunning("Finding jobs that match your resume…");
+            try {
+              const ack = await apiPost("/api/jobs/find-more");
+              inProgress = !!(ack && ack.discovery_in_progress);
+            } catch (triggerErr) {
+              // 409 means a run is already in progress despite the flag —
+              // treat it as in-progress and poll anyway.
+              if (triggerErr && triggerErr.status === 409) {
+                inProgress = true;
+              }
+              // Any other error: fall through to renderNoMatches below.
+            }
+          } else {
+            renderDiscoveryRunning("Building your shortlist…");
+          }
+
+          if (inProgress) {
+            let firstRender = true;
+            const tail = await pollQueueRolling({
+              baselineCount: 0,
+              onUpdate: (payload) => {
+                applyQueuePayload(payload);
+                updateCounter();
+                if (firstRender) {
+                  state.currentIndex = 0;
+                  firstRender = false;
+                }
+                renderCarousel();
+              },
+            });
+            if (firstRender) {
+              if (tail && tail.discovery_in_progress === false) {
+                renderNoMatches();
+              } else {
+                renderPollTimeout();
+              }
+            }
+            return;
+          }
+        }
+        renderNoMatches();
+      } catch (err) {
+        if (err.message === "unauthorized") return;
+        $main.innerHTML = `
+          <div class="info-card">
+            <h2>Could not load your queue</h2>
+            <p>${escapeHtml(err.message)}</p>
+            <button type="button" class="btn btn-primary find-more-btn" id="retry-btn" style="margin-top: 14px;">
+              Retry
+            </button>
+          </div>`;
+        const r = document.getElementById("retry-btn");
+        if (r) r.addEventListener("click", () => loadQueue({ initial: true }));
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // State 1 — upload prompt (Fix 2 + Fix 3 step 5)
+    // -----------------------------------------------------------------
+
+    function renderUploadState({ statusMessage = null, statusError = false } = {}) {
+      hideCounter();
+      // No signal profile yet — the header "Re-upload" button would be
+      // misleading here because there's nothing to replace. Hide it.
+      if ($headerReupload) $headerReupload.hidden = true;
+      $main.innerHTML = `
+        <div class="upload-screen">
+          <div class="upload-card">
+            <h2>Upload your resume</h2>
+            <p>A resume is required so we can find remote roles that match you.</p>
+            <input type="file" id="resume-input" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+            <button type="button" class="btn btn-primary" id="resume-pick-btn">Choose resume (.pdf or .docx)</button>
+            <div class="upload-status ${statusError ? "error" : ""}" id="upload-status">${statusMessage ? escapeHtml(statusMessage) : ""}</div>
+          </div>
+        </div>`;
+      const input = document.getElementById("resume-input");
+      const pickBtn = document.getElementById("resume-pick-btn");
+      pickBtn.addEventListener("click", () => input.click());
+      input.addEventListener("change", () => {
+        if (input.files && input.files[0]) {
+          uploadResume(input.files[0]);
+        }
+      });
+    }
+
+    function setUploadStatus(message, isError = false) {
+      const el = document.getElementById("upload-status");
+      if (!el) return;
+      el.textContent = message;
+      el.classList.toggle("error", !!isError);
+    }
+
+    function disableUploadInputs(disabled) {
+      const input = document.getElementById("resume-input");
+      const btn = document.getElementById("resume-pick-btn");
+      if (input) input.disabled = disabled;
+      if (btn) btn.disabled = disabled;
+    }
+
+    async function uploadResume(file) {
+      // Client-side guard so the user doesn't wait on a 400.
+      const lower = (file.name || "").toLowerCase();
+      if (!lower.endsWith(".pdf") && !lower.endsWith(".docx")) {
+        setUploadStatus("Please upload a PDF or DOCX file.", true);
+        showToast("Please upload a PDF or DOCX file.");
+        return;
+      }
+
+      disableUploadInputs(true);
+      if ($headerReupload) $headerReupload.disabled = true;
+      setUploadStatus("Parsing your resume… this can take up to a minute.", false);
+      showToast("Parsing your resume…");
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      let uploadResponse;
+      try {
+        uploadResponse = await apiPostMultipart("/api/resume/upload", formData);
+      } catch (err) {
+        if (err.message === "unauthorized") return;
+        disableUploadInputs(false);
+        if ($headerReupload) $headerReupload.disabled = false;
+        setUploadStatus(err.message || "Upload failed.", true);
+        showToast(err.message || "Upload failed.");
+        return;
+      }
+      if ($headerReupload) $headerReupload.disabled = false;
+
+      // Show the extracted signal profile + handoff to the rolling poller.
+      // As each newly-scraped + verified job lands in the queue we re-render
+      // the carousel so the user sees jobs streaming in.
+      // First-time uploads kept the header button hidden — the new signal
+      // profile means re-uploading is now meaningful.
+      if ($headerReupload) $headerReupload.hidden = false;
+      renderSignalAndPollState(uploadResponse.signal_profile || {});
+      let firstRender = true;
+      try {
+        const data = await pollQueueRolling({
+          baselineCount: 0,
+          onUpdate: (payload) => {
+            applyQueuePayload(payload);
+            updateCounter();
+            if (firstRender) {
+              state.currentIndex = 0;
+              firstRender = false;
+            }
+            renderCarousel();
+          },
+        });
+        if (firstRender) {
+          // Polling ended without ever seeing a job. Either discovery
+          // completed empty, or it timed out before producing anything.
+          if (data && data.discovery_in_progress === false) {
+            renderNoMatches();
+          } else {
+            renderPollTimeout();
+          }
+        }
+      } catch (err) {
+        if (err.message === "unauthorized") return;
+        if (firstRender) renderPollTimeout(err.message);
+      }
+    }
+
+    function renderSignalAndPollState(signalProfile) {
+      const sp = signalProfile || {};
+      const pillRow = (items) =>
+        (items || []).length === 0
+          ? `<span class="pill" style="opacity: 0.6;">none</span>`
+          : items.map((x) => `<span class="pill">${escapeHtml(x)}</span>`).join("");
+
+      $main.innerHTML = `
+        <div class="signal-card">
+          <h3>What we found in your resume</h3>
+          <div class="signal-grid">
+            <div class="signal-item">
+              <span class="label">Suitable levels</span>
+              <div class="signal-pills">${pillRow(sp.suitable_levels)}</div>
+            </div>
+            <div class="signal-item">
+              <span class="label">Primary roles</span>
+              <div class="signal-pills">${pillRow(sp.primary_roles)}</div>
+            </div>
+            <div class="signal-item">
+              <span class="label">Core skills</span>
+              <div class="signal-pills">${pillRow(sp.core_skills)}</div>
+            </div>
+            <div class="signal-item">
+              <span class="label">Search keywords</span>
+              <div class="signal-pills">${pillRow(sp.search_keywords)}</div>
+            </div>
+          </div>
+        </div>
+        <div class="info-card" id="poll-status">
+          <h2>We are finding jobs for you</h2>
+          <p>This may take a moment.</p>
+        </div>`;
+    }
+
+    function renderPollTimeout(message) {
+      const card = document.getElementById("poll-status");
+      const html = `
+        <h2>Job search is taking longer than expected</h2>
+        <p>${escapeHtml(message || "Refresh the page to check for results.")}</p>
+        <button type="button" class="btn btn-primary find-more-btn" id="refresh-btn" style="margin-top: 14px;">
+          Refresh
+        </button>`;
+      if (card) {
+        card.innerHTML = html;
+      } else {
+        $main.innerHTML = `<div class="center-block"><div class="info-card">${html}</div></div>`;
+      }
+      const r = document.getElementById("refresh-btn");
+      if (r) r.addEventListener("click", () => window.location.reload());
+    }
+
+    // Rolling poller. Calls onUpdate(data) every time the queue grows so
+    // the carousel can render new cards in-place. Stops on:
+    //   1. POLL_MAX_MS hard cap, or
+    //   2. discovery_in_progress=false AND no growth for POLL_STAGNATION_TICKS
+    //      consecutive polls (lets the last LLM round-trip land), or
+    //   3. caller's onUpdate returning the literal string "stop"
+    //      (escape hatch — e.g. queue cap reached).
+    async function pollQueueRolling({ baselineCount = 0, onUpdate = null } = {}) {
+      const startedAt = Date.now();
+      let lastCount = baselineCount;
+      let stagnant = 0;
+      let lastData = null;
+      while (Date.now() - startedAt < POLL_MAX_MS) {
+        try {
+          const data = await apiGet("/api/jobs/queue");
+          lastData = data;
+          const count = (data.jobs || []).length;
+          if (count > lastCount) {
+            lastCount = count;
+            stagnant = 0;
+            if (onUpdate) {
+              try {
+                if (onUpdate(data) === "stop") return data;
+              } catch (_) {
+                /* swallow render errors so polling continues */
+              }
+            }
+          } else {
+            stagnant += 1;
+          }
+          if (!data.discovery_in_progress && stagnant >= POLL_STAGNATION_TICKS) {
+            return data;
+          }
+          if (data.cap_reached) {
+            return data;
+          }
+        } catch (err) {
+          if (err.message === "unauthorized") throw err;
+          // 4xx during poll (e.g. transient server hiccup) — try again.
+        }
+        await sleep(POLL_INTERVAL_MS);
+      }
+      return lastData;
+    }
+
+    // Backwards-compat shim — only used by older callers.
+    async function pollUntilJobs() {
+      return pollQueueRolling({ baselineCount: 0 });
+    }
+
+    // -----------------------------------------------------------------
+    // Carousel mutations
+    // -----------------------------------------------------------------
+
+    async function markInteraction(interactionId, status) {
+      if (!interactionId || state.busy) return;
+      state.busy = true;
+      try {
+        const data = await apiPost("/api/jobs/interact", {
+          interaction_id: interactionId,
+          status,
+        });
+        const removedIdx = state.jobs.findIndex((c) => c.interaction_id === interactionId);
+        if (removedIdx >= 0) state.jobs.splice(removedIdx, 1);
+
+        state.shownCount = data.shown_count;
+        state.capReached = !!data.cap_reached;
+        state.availableSlots = data.available_slots ?? 0;
+        updateCounter();
+
+        if (state.currentIndex > state.jobs.length) {
+          state.currentIndex = state.jobs.length;
+        }
+
+        renderCarousel();
+        showToast(
+          status === "applied" ? "Marked as applied" :
+          status === "not_interested" ? "Marked not interested" : "Saved"
+        );
+      } catch (err) {
+        if (err.message === "unauthorized") return;
+        showToast(err.message || "Could not update");
+      } finally {
+        state.busy = false;
+      }
+    }
+
+    async function findMore() {
+      if (state.busy) return;
+      state.busy = true;
+      const btn = document.getElementById("find-more-btn");
+      if (btn) { btn.disabled = true; btn.textContent = "Searching for more jobs…"; }
+
+      const baseline = state.jobs.length;
+      const baselineFirstNewOrder = state.jobs.length
+        ? Math.max(...state.jobs.map((c) => c.shown_order || 0))
+        : 0;
+
+      try {
+        const ack = await apiPost("/api/jobs/find-more");
+        if (!ack || ack.discovery_in_progress !== true) {
+          showToast("Discovery did not start. Try again in a moment.");
+          if (btn) { btn.disabled = false; btn.textContent = "Find more jobs"; }
+          state.busy = false;
+          return;
+        }
+      } catch (err) {
+        if (err.message === "unauthorized") return;
+        showToast(err.message || "Could not fetch more jobs");
+        if (btn) { btn.disabled = false; btn.textContent = "Find more jobs"; }
+        state.busy = false;
+        return;
+      }
+
+      let jumped = false;
+      try {
+        await pollQueueRolling({
+          baselineCount: baseline,
+          onUpdate: (payload) => {
+            applyQueuePayload(payload);
+            updateCounter();
+            renderCarousel();
+            if (!jumped) {
+              const firstNew = state.jobs.find(
+                (c) => (c.shown_order || 0) > baselineFirstNewOrder,
+              );
+              if (firstNew) {
+                const idx = state.jobs.indexOf(firstNew);
+                if (idx >= 0) {
+                  state.currentIndex = idx;
+                  applyTransform();
+                  jumped = true;
+                }
+              }
+            }
+          },
+        });
+
+        const addedCount = state.jobs.length - baseline;
+        if (addedCount === 0) {
+          showToast("No new matches found right now.");
+        } else {
+          showToast(
+            `Added ${addedCount} new ${addedCount === 1 ? "job" : "jobs"}`,
+          );
+        }
+      } catch (err) {
+        if (err.message === "unauthorized") return;
+        showToast(err.message || "Polling for new jobs failed");
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "Find more jobs"; }
+        state.busy = false;
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // Wiring
+    // -----------------------------------------------------------------
+
+    $signout.addEventListener("click", signOut);
+
+    // Header re-upload — reuses the same uploadResume() flow as the
+    // initial-state upload screen, so the rolling poller takes over and
+    // streams new high-quality jobs into the carousel as they're scraped.
+    $headerReupload.addEventListener("click", () => $reuploadInput.click());
+    $reuploadInput.addEventListener("change", () => {
+      if ($reuploadInput.files && $reuploadInput.files[0]) {
+        const f = $reuploadInput.files[0];
+        // Reset value so re-selecting the same file later still triggers change.
+        $reuploadInput.value = "";
+        uploadResume(f);
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>
